@@ -19,7 +19,7 @@
 #include "host.h"
 
 #include "gui.h"
-#include "pwm.h"
+#include "audio.h"
 //static void setup_hardware();
 
 volatile xSemaphoreHandle serial_tx_wait_sem = NULL;

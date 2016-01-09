@@ -8,7 +8,7 @@
 #include "queue.h"
 #include "semphr.h"
 
-#include "pwm.h"
+#include "audio.h"
 
 #define MAX_LINE 12
 extern uint32_t play_time_sec;
