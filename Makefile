@@ -57,8 +57,8 @@ CFLAGS += -D"assert_param(expr)=((void)0)"
 #My restart
 OBJS += \
       $(PWD)/src/main.o \
-      $(PWD)/CORTEX_M4F_STM32F4/startup/system_stm32f4xx.o
-      #$(PWD)/CORTEX_M4F_STM32F4/stm32f4xx_it.o \
+      $(PWD)/CORTEX_M4F_STM32F4/startup/system_stm32f4xx.o \
+      $(PWD)/CORTEX_M4F_STM32F4/stm32f4xx_it.o
 
 OBJS += \
       $(PWD)/FreeRTOS/croutine.o \
@@ -90,6 +90,7 @@ OBJS += \
     $(PWD)/Utilities/STM32F429I-Discovery/stm32f429i_discovery_sdram.o \
     $(PWD)/Utilities/STM32F429I-Discovery/stm32f429i_discovery_lcd.o \
     $(PWD)/Utilities/STM32F429I-Discovery/stm32f429i_discovery_ioe.o \
+#	$(PWD)/Utilities/STM32F429I-Discovery/stm32f4_discovery_lis302dl.o
 #	$(PWD)/Utilities/STM32F429I-Discovery/stm32f4_discovery_audio_codec.o
 
 # shell
@@ -99,7 +100,7 @@ OBJS += \
     $(PWD)/src/hash-djb2.o \
     $(PWD)/src/osdebug.o \
     $(PWD)/src/gui.o \
-    $(PWD)/src/pwm.o \
+    $(PWD)/src/audio.o \
     $(PWD)/src/diskio.o \
     $(PWD)/src/ff.o \
     $(PWD)/src/tm_stm32f4_fatfs.o \
@@ -126,7 +127,8 @@ OBJS += \
     $(PWD)/src/mp3/scalfact.o \
     $(PWD)/src/mp3/asmmisc.o \
     $(PWD)/src/mp3/asmpoly.o \
-	$(PWD)/src/stm32f4_discovery_audio_codec.o
+    $(PWD)/src/stm32f4_discovery_audio_codec.o \
+	$(PWD)/src/stm32f4_discovery_lis302dl.o
 
 
 CFLAGS += -I $(PWD)/include

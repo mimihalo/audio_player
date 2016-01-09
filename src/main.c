@@ -31,6 +31,12 @@ volatile xQueueHandle play_queue = NULL;
 
 FATFS FatFs;
 
+//global var
+__IO uint8_t RepeatState = 0;
+__IO uint16_t CCR_Val = 16826;
+__IO uint8_t Command_index=0;
+FIL file;
+FIL fileR;
 
 int main()
 {

@@ -13,8 +13,17 @@ void player_init();
 #define __WAVE_PLAYER_H
 
 /* Includes ------------------------------------------------------------------*/
-//null
-
+#include "stm32f4xx.h"
+#include "stm32f4xx_tim.h"
+#include "stm32f4xx_rcc.h"
+#include "stm32f4xx_spi.h"
+#include "misc.h"
+#include "stm32f4xx_exti.h"
+#include "stm32f4xx_syscfg.h"
+#include "stm32f4_discovery_audio_codec.h"
+#include "stm32f4_discovery_lis302dl.h"
+#include <stdio.h>
+#include "stm32f4xx_it.h"
 
 /**
   ******************************************************************************

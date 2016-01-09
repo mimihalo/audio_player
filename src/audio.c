@@ -8,8 +8,16 @@
 #include "mp3dec.h"
 #include "mp3common.h"
 #include "gui.h"
-#include "stm32f4_discovery_audio_codec.h"
+#include "stm32f4xx.h"
+#include "stm32f4xx_tim.h"
+#include "stm32f4xx_rcc.h"
 #include "stm32f4xx_spi.h"
+#include "stm32f4xx_exti.h"
+#include "stm32f4xx_syscfg.h"
+#include "stm32f4_discovery_audio_codec.h"
+#include "stm32f4_discovery_lis302dl.h"
+#include <stdio.h>
+#include "stm32f4xx_it.h"
 
 /*move from waveplayer*/
 #ifdef I2S_24BIT
@@ -24,9 +32,8 @@ __IO uint8_t volume = 80;
 __IO uint8_t AudioPlayStart = 0;
 static __IO uint32_t TimingDelay;
 uint8_t Buffer[6];
-static void Mems_Config(void);
+//static void Mems_Config(void);
 
-#if 0
 /** @addtogroup STM32F4-Discovery_Audio_Player_Recorder
 * @{
 */ 
@@ -45,10 +52,9 @@ extern uint16_t AUDIO_SAMPLE[];
 
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-#if defined MEDIA_USB_KEY
  extern __IO uint8_t Command_index;
  static uint32_t wavelen = 0;
- static char* WaveFileName ;
+ //static char* WaveFileName ;
  static __IO uint32_t SpeechDataOffset = 0x00;
  __IO ErrorCode WaveFileStatus = Unvalid_RIFF_ID;
  UINT BytesRead;
@@ -62,9 +68,8 @@ extern uint16_t AUDIO_SAMPLE[];
  extern DIR dir;
  extern FILINFO fno;
  extern uint16_t *CurrentPos;
- extern USB_OTG_CORE_HANDLE USB_OTG_Core;
  extern uint8_t WaveRecStatus;
-#endif
+
 
 __IO uint32_t XferCplt = 0;
 __IO uint32_t WaveCounter;
@@ -76,12 +81,9 @@ extern __IO uint8_t PauseResumeStatus ;
 extern uint32_t AudioRemSize; 
 
 /* Private function prototypes -----------------------------------------------*/
-#if 0
-static void EXTILine_Config(void);
-#endif
-#if defined MEDIA_USB_KEY
 static ErrorCode WavePlayer_WaveParsing(uint32_t *FileLen);
-#endif
+uint32_t ReadUnit(uint8_t *buffer, uint8_t idx, uint8_t NbrOfBytes, Endianness BytesFormat);
+static void Mems_Config(void);
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -465,7 +467,7 @@ int WavePlayerInit(uint32_t AudioFreq)
   return 0;
 }
 
-**
+/**
   * @brief  Pause or Resume a played wave
   * @param  state: if it is equal to 0 pause Playing else resume playing
   * @retval None
@@ -542,11 +544,10 @@ void WavePlayer_CallBack(void)
   /* LED off */
   STM_EVAL_LEDOff(LED3);
   STM_EVAL_LEDOff(LED4);
-  STM_EVAL_LEDOff(LED6);
   
   /* TIM Interrupts disable */
   TIM_ITConfig(TIM4, TIM_IT_CC1, DISABLE);
-  f_mount(0, NULL);
+  //f_mount(0, NULL);
 } 
 
 /**
@@ -812,11 +813,11 @@ int WavePlayerStart(char *fname)
   /* Get the read out protection status */
   if (0)
   {
-    while(1)
+    /*while(1)
     {
       STM_EVAL_LEDToggle(LED5);
       Delay(10);
-    }    
+    }*/
   }
   else
   {
@@ -831,8 +832,7 @@ int WavePlayerStart(char *fname)
     /* Open the wave file to be played */
     if (f_open(&fileR, fname , FA_OPEN_ALWAYS | FA_READ) != FR_OK)
     {
-      STM_EVAL_LEDOn(LED5);
-      Command_index = 1;
+		return -1;
     }
     else
     {    
@@ -855,8 +855,65 @@ int WavePlayerStart(char *fname)
 	  f_read(&fil,readBuf,sizeof(readBuf),&cnt);
       bytesLeft += cnt;
       readPtr = readBuf;
-      WavePlayBack(WAVE_Format.SampleRate);
+      WavePlayBack(WAVE_Format.SampleRate,fname);
     }    
   }
+  return 0;
+}
+
+static void Mems_Config(void)
+{ 
+  uint8_t ctrl = 0;
+  
+  LIS302DL_InitTypeDef  LIS302DL_InitStruct;
+  LIS302DL_InterruptConfigTypeDef LIS302DL_InterruptStruct;  
+  
+  /* Set configuration of LIS302DL*/
+  LIS302DL_InitStruct.Power_Mode = LIS302DL_LOWPOWERMODE_ACTIVE;
+  LIS302DL_InitStruct.Output_DataRate = LIS302DL_DATARATE_100;
+  LIS302DL_InitStruct.Axes_Enable = LIS302DL_X_ENABLE | LIS302DL_Y_ENABLE | LIS302DL_Z_ENABLE;
+  LIS302DL_InitStruct.Full_Scale = LIS302DL_FULLSCALE_2_3;
+  LIS302DL_InitStruct.Self_Test = LIS302DL_SELFTEST_NORMAL;
+  LIS302DL_Init(&LIS302DL_InitStruct);
+    
+  /* Set configuration of Internal High Pass Filter of LIS302DL*/
+  LIS302DL_InterruptStruct.Latch_Request = LIS302DL_INTERRUPTREQUEST_LATCHED;
+  LIS302DL_InterruptStruct.SingleClick_Axes = LIS302DL_CLICKINTERRUPT_Z_ENABLE;
+  LIS302DL_InterruptStruct.DoubleClick_Axes = LIS302DL_DOUBLECLICKINTERRUPT_Z_ENABLE;
+  LIS302DL_InterruptConfig(&LIS302DL_InterruptStruct);
+  
+  /* Configure Interrupt control register: enable Click interrupt on INT1 and
+     INT2 on Z axis high event */
+  ctrl = 0x3F;
+  LIS302DL_Write(&ctrl, LIS302DL_CTRL_REG3_ADDR, 1);
+  
+  /* Enable Interrupt generation on click on Z axis */
+  ctrl = 0x50;
+  LIS302DL_Write(&ctrl, LIS302DL_CLICK_CFG_REG_ADDR, 1);
+  
+  /* Configure Click Threshold on X/Y axis (10 x 0.5g) */
+  ctrl = 0xAA;
+  LIS302DL_Write(&ctrl, LIS302DL_CLICK_THSY_X_REG_ADDR, 1);
+  
+  /* Configure Click Threshold on Z axis (10 x 0.5g) */
+  ctrl = 0x0A;
+  LIS302DL_Write(&ctrl, LIS302DL_CLICK_THSZ_REG_ADDR, 1);
+  
+  /* Enable interrupt on Y axis high event */
+  ctrl = 0x4C;
+  LIS302DL_Write(&ctrl, LIS302DL_FF_WU_CFG1_REG_ADDR, 1);
+  
+  /* Configure Time Limit */
+  ctrl = 0x03;
+  LIS302DL_Write(&ctrl, LIS302DL_CLICK_TIMELIMIT_REG_ADDR, 1);
+    
+  /* Configure Latency */
+  ctrl = 0x7F;
+  LIS302DL_Write(&ctrl, LIS302DL_CLICK_LATENCY_REG_ADDR, 1);
+  
+  /* Configure Click Window */
+  ctrl = 0x7F;
+  LIS302DL_Write(&ctrl, LIS302DL_CLICK_WINDOW_REG_ADDR, 1);
+    
 }
 /*move from waveplayer*/
