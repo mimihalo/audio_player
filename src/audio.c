@@ -276,8 +276,7 @@ void decode(uint16_t *outbuf)
     
     if(offset < 0)
     {
-        stop();
-        
+        WavePlayerStop();
     }
     else
     {
@@ -294,8 +293,7 @@ void decode(uint16_t *outbuf)
             bytesLeft=READBUF_SIZE;
             readPtr=readBuf;               
             if(fr || cnt == 0){
-                stop();
-                next_song();
+                WavePlayerStop();
             }
         }
 
@@ -763,15 +761,19 @@ void WavePlayBack(uint32_t AudioFreq,char *name)
         /* Play data from buffer1 */
         Audio_MAL_Play((uint32_t)buffer1, _MAX_SS);
         /* Store data in buffer2 */
-        f_read (&fileR, buffer2, _MAX_SS, &BytesRead);
+        f_read (&fileR, buffer2, _MAX_SS, &cnt);
+		if(ismp3)
+			decode(buffer2);
         buffer_switch = 1;
       }
       else 
-      {   
-        /* Play data from buffer2 */
+      { 
+		/* Play data from buffer2 */
         Audio_MAL_Play((uint32_t)buffer2, _MAX_SS);
         /* Store data in buffer1 */
-        f_read (&fileR, buffer1, _MAX_SS, &BytesRead);
+        f_read (&fileR, buffer1, _MAX_SS, &cnt);
+		if(ismp3)
+			decode(buffer1);
         buffer_switch = 0;
       } 
     }
@@ -849,6 +851,10 @@ int WavePlayerStart(char *fname)
         return -1;
       }
       /* Play the wave */
+	  int cnt;
+	  f_read(&fil,readBuf,sizeof(readBuf),&cnt);
+      bytesLeft += cnt;
+      readPtr = readBuf;
       WavePlayBack(WAVE_Format.SampleRate);
     }    
   }
