@@ -1,4 +1,4 @@
-PROJECT = player
+PROJECT = player2015
 
 EXECUTABLE = $(PROJECT).elf
 BIN_IMAGE = $(PROJECT).bin
@@ -89,7 +89,8 @@ OBJS += \
     $(PWD)/Utilities/STM32F429I-Discovery/stm32f429i_discovery.o \
     $(PWD)/Utilities/STM32F429I-Discovery/stm32f429i_discovery_sdram.o \
     $(PWD)/Utilities/STM32F429I-Discovery/stm32f429i_discovery_lcd.o \
-    $(PWD)/Utilities/STM32F429I-Discovery/stm32f429i_discovery_ioe.o
+    $(PWD)/Utilities/STM32F429I-Discovery/stm32f429i_discovery_ioe.o \
+#	$(PWD)/Utilities/STM32F429I-Discovery/stm32f4_discovery_audio_codec.o
 
 # shell
 OBJS += \
@@ -124,7 +125,8 @@ OBJS += \
     $(PWD)/src/mp3/trigtabs.o \
     $(PWD)/src/mp3/scalfact.o \
     $(PWD)/src/mp3/asmmisc.o \
-    $(PWD)/src/mp3/asmpoly.o
+    $(PWD)/src/mp3/asmpoly.o \
+	$(PWD)/src/stm32f4_discovery_audio_codec.o
 
 
 CFLAGS += -I $(PWD)/include
