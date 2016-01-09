@@ -123,9 +123,9 @@ void play_test(void *p){
 
 int play(char * name)
 {
-    if (f_open(&fil, name, FA_OPEN_ALWAYS | FA_READ) != FR_OK) {
+    /*if (f_open(&fil, name, FA_OPEN_ALWAYS | FA_READ) != FR_OK) {
         return -1;
-    }
+    }*/
 
     if (strstr(name, "MP3")) ismp3 = 1;
     else ismp3 = 0;
@@ -136,14 +136,16 @@ int play(char * name)
         buf2[i] = 2000;
     }
 
+	WavePlayerStart(name);
+	
     /*TIM_Cmd(TIM1, ENABLE);
     TIM_Cmd(TIM2, ENABLE);*/
     //DAC_Cmd(DAC_Channel_1, ENABLE);
     //DAC_Cmd(DAC_Channel_2, ENABLE);
-    int cnt;
+    /*int cnt;
     f_read(&fil,readBuf,sizeof(readBuf),&cnt);
     bytesLeft += cnt;
-    readPtr = readBuf;
+    readPtr = readBuf;*/
 
     return 0;
 }
@@ -691,7 +693,7 @@ uint32_t ReadUnit(uint8_t *buffer, uint8_t idx, uint8_t NbrOfBytes, Endianness B
   return temp;
 }
 
-void WavePlayBack(uint32_t AudioFreq)
+void WavePlayBack(uint32_t AudioFreq,char *name)
 { 
   /* 
   Normal mode description:
@@ -713,60 +715,10 @@ void WavePlayBack(uint32_t AudioFreq)
   /* Start playing */
   AudioPlayStart = 1;
   RepeatState =0;
-#if defined MEDIA_IntFLASH 
-  
   /* Initialize wave player (Codec, DMA, I2C) */
   WavePlayerInit(AudioFreq);
-  
-  /* Play on */
-//#ifdef FLASH_FILE
-  ////AudioFlashPlay((uint16_t*)(AUDIO_SAMPLE + AUDIO_START_ADDRESS),AUDIO_FILE_SZE,AUDIO_START_ADDRESS);
-//#else
-  ////memcpy(sampleBuffer, (uint16_t*)(AUDIO_SAMPLE + AUDIO_START_ADDRESS), sizeof(sampleBuffer));
-  //AudioFlashPlay((uint16_t*)sampleBuffer, sizeof(sampleBuffer), 0);
-//#endif
-  
-  /* LED Blue Start toggling */
-  LED_Toggle = 6;
 
-#if 0
-  /* Infinite loop */
-  while(1)
-  { 
-    /* check on the repeat status */
-    if (RepeatState == 0)
-    {
-      if (PauseResumeStatus == 0)
-      {
-        /* LED Blue Stop Toggling */
-        LED_Toggle = 0;
-        /* Pause playing */
-        WavePlayerPauseResume(PauseResumeStatus);
-        PauseResumeStatus = 2;
-      }
-      else if (PauseResumeStatus == 1)
-      {
-        /* LED Blue Toggling */
-        LED_Toggle = 6;
-        /* Resume playing */
-        WavePlayerPauseResume(PauseResumeStatus);
-        PauseResumeStatus = 2;
-      }
-    }
-    else
-    {
-      /* Stop playing */
-      WavePlayerStop();
-      /* Green LED toggling */
-      LED_Toggle = 4;
-    }
-  }
-#endif
-  
-#elif defined MEDIA_USB_KEY
-  /* Initialize wave player (Codec, DMA, I2C) */
-  WavePlayerInit(AudioFreq);
-  AudioRemSize   = 0; 
+  AudioRemSize = 0; 
 
   /* Get Data from USB Key */
   f_lseek(&fileR, WaveCounter);
@@ -781,13 +733,13 @@ void WavePlayBack(uint32_t AudioFreq)
   PauseResumeStatus = 1;
   Count = 0;
  
-  while((WaveDataLength != 0) &&  HCD_IsDeviceConnected(&USB_OTG_Core))
+  while(WaveDataLength != 0)
   { 
     /* Test on the command: Playing */
     if (Command_index == 0)
     { 
       /* wait for DMA transfer complete */
-      while((XferCplt == 0) &&  HCD_IsDeviceConnected(&USB_OTG_Core))
+      while(XferCplt == 0)
       {
         if (PauseResumeStatus == 0)
         {
@@ -842,7 +794,6 @@ void WavePlayBack(uint32_t AudioFreq)
   AudioPlayStart = 0;
   WavePlayerStop();
 #endif
-#endif 
 
 }
 
@@ -852,14 +803,12 @@ void WavePlayBack(uint32_t AudioFreq)
   * @param  None
   * @retval None
   */
-void WavePlayerStart(void)
+int WavePlayerStart(char *fname)
 {
-  char path[] = "0:/";
-  
   buffer_switch = 1;
   
   /* Get the read out protection status */
-  if (f_opendir(&dir, path)!= FR_OK)
+  if (0)
   {
     while(1)
     {
@@ -869,16 +818,16 @@ void WavePlayerStart(void)
   }
   else
   {
-    if (WaveRecStatus == 1)
+    /*if (WaveRecStatus == 1)
     {
       WaveFileName = REC_WAVE_NAME;
     }
     else
     {
       WaveFileName = WAVE_NAME; 
-    }
+    }*/
     /* Open the wave file to be played */
-    if (f_open(&fileR, WaveFileName , FA_READ) != FR_OK)
+    if (f_open(&fileR, fname , FA_OPEN_ALWAYS | FA_READ) != FR_OK)
     {
       STM_EVAL_LEDOn(LED5);
       Command_index = 1;
@@ -897,12 +846,7 @@ void WavePlayerStart(void)
       }
       else /* invalid wave file */
       {
-        /* Led Red Toggles in infinite loop */
-        while(1)
-        {
-          STM_EVAL_LEDToggle(LED5);
-          Delay(10);
-        }
+        return -1;
       }
       /* Play the wave */
       WavePlayBack(WAVE_Format.SampleRate);
