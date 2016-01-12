@@ -126,8 +126,8 @@ OBJS += \
     $(PWD)/src/mp3/scalfact.o \
     $(PWD)/src/mp3/asmmisc.o \
     $(PWD)/src/mp3/asmpoly.o \
-	$(PWD)/src/stm32f4_discovery_audio_codec.o
-
+	$(PWD)/src/stm32f4_discovery_audio_codec.o \
+	$(PWD)/src/waveplayer.o
 
 CFLAGS += -I $(PWD)/include
 
@@ -146,7 +146,7 @@ all: $(BIN_IMAGE)
 $(BIN_IMAGE): $(EXECUTABLE)
 	$(OBJCOPY) -O binary $^ $@
 	$(OBJCOPY) -O ihex $^ $(HEX_IMAGE)
-	$(OBJDUMP) -h -S -D $(EXECUTABLE) > $(PROJECT).lst
+	#$(OBJDUMP) -h -S -D $(EXECUTABLE) > $(PROJECT).lst
 	$(SIZE) $(EXECUTABLE)
 	
 $(EXECUTABLE): $(OBJS)

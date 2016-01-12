@@ -8,6 +8,8 @@
 #include "mp3dec.h"
 #include "mp3common.h"
 #include "gui.h"
+#include "stm32f4_discovery_audio_codec.h"
+#include "waveplayer.h"
 
 uint32_t play_time_other = 0;
 uint32_t play_time_sec = 0;
@@ -38,6 +40,10 @@ int count = 0;
 int ok = 1;
 int ismp3 = 0;
 
+extern __IO ErrorCode WaveFileStatus = Unvalid_RIFF_ID;
+extern WAVE_FormatTypeDef WAVE_Format;
+extern uint32_t wavelen;
+
 
 void play_test(void *p){
     play("C128.mp3");
@@ -57,7 +63,14 @@ int play(char * name)
         buf[i] = 2000;
         buf2[i] = 2000;
     }
+	
+	/* Initialize I2S interface */  
+	EVAL_AUDIO_SetAudioInterface(AUDIO_INTERFACE_I2S);
 
+	//WaveFileStatus = WavePlayer_WaveParsing(&wavelen);
+	/* Initialize the Audio codec and all related peripherals (I2S, I2C, IOExpander, IOs...) */  
+	EVAL_AUDIO_Init(OUTPUT_DEVICE_AUTO, 80, I2S_AudioFreq_48k );  
+	
     TIM_Cmd(TIM1, ENABLE);
     TIM_Cmd(TIM2, ENABLE);
     //DAC_Cmd(DAC_Channel_1, ENABLE);
@@ -74,6 +87,7 @@ void stop()
 {
     TIM_Cmd(TIM1, DISABLE);
     TIM_Cmd(TIM2, DISABLE);
+	EVAL_AUDIO_Stop(CODEC_PDWN_SW);
     //DAC_Cmd(DAC_Channel_1, DISABLE);
     //DAC_Cmd(DAC_Channel_2, DISABLE);
 
@@ -125,7 +139,8 @@ void TIM1_UP_TIM10_IRQHandler(void)
 
         TIM1->CCR1 = buf[cur_point*2];
         TIM1->CCR2 = buf[cur_point*2+1];
-
+		Audio_MAL_Play((uint32_t)buf, BUF_LENGTH*sizeof(uint16_t));
+		
         // if(cur_point%16 == 0)
         // {
         //     // DAC_SetChannel1Data(DAC_Align_12b_R,data1);
@@ -149,7 +164,7 @@ void TIM1_UP_TIM10_IRQHandler(void)
     {
         TIM1->CCR1 = buf2[cur_point*2];
         TIM1->CCR2 = buf2[cur_point*2+1];
-
+		Audio_MAL_Play((uint32_t)buf2, BUF_LENGTH*sizeof(uint16_t));
 
         // if(cur_point%16 == 0)
         // {
@@ -358,4 +373,14 @@ void PWM_GPIO_Configuration(void)
 
     GPIO_PinAFConfig(GPIOB, GPIO_PinSource13, GPIO_AF_TIM1);
     GPIO_PinAFConfig(GPIOB, GPIO_PinSource0, GPIO_AF_TIM1);
+}
+
+void EVAL_AUDIO_TransferComplete_CallBack(uint32_t pBuffer, uint32_t Size)
+{
+  EVAL_AUDIO_Stop(CODEC_PDWN_HW);
+}
+
+uint16_t EVAL_AUDIO_GetSampleCallBack(void)
+{
+  return 0;
 }

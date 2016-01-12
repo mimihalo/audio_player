@@ -31,7 +31,6 @@ volatile xQueueHandle play_queue = NULL;
 
 FATFS FatFs;
 
-
 int main()
 {
 	RCC_Configuration();
