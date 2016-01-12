@@ -21,6 +21,8 @@ int i;
 
 uint16_t *buf;
 uint16_t *buf2;
+uint16_t pbuf1[2];
+uint16_t pbuf2[2];
 static uint8_t readBuf[READBUF_SIZE];
 int chunck2_size = 0;
 uint8_t cur_buf = 0;
@@ -139,7 +141,9 @@ void TIM1_UP_TIM10_IRQHandler(void)
 
         TIM1->CCR1 = buf[cur_point*2];
         TIM1->CCR2 = buf[cur_point*2+1];
-		Audio_MAL_Play((uint32_t)buf, BUF_LENGTH*sizeof(uint16_t));
+		pbuf1[0]=buf[cur_point*2];
+		pbuf1[1]=buf[cur_point*2+1];
+		Audio_MAL_Play((uint32_t)pbuf1, 2*sizeof(uint16_t));
 		
         // if(cur_point%16 == 0)
         // {
@@ -164,7 +168,10 @@ void TIM1_UP_TIM10_IRQHandler(void)
     {
         TIM1->CCR1 = buf2[cur_point*2];
         TIM1->CCR2 = buf2[cur_point*2+1];
-		Audio_MAL_Play((uint32_t)buf2, BUF_LENGTH*sizeof(uint16_t));
+		pbuf2[0]=buf2[cur_point*2];
+		pbuf2[1]=buf2[cur_point*2+1];
+		Audio_MAL_Play((uint32_t)pbuf2, 2*sizeof(uint16_t));
+		//Audio_MAL_Play((uint32_t)buf2, BUF_LENGTH*sizeof(uint16_t));
 
         // if(cur_point%16 == 0)
         // {
