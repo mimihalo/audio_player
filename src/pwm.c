@@ -84,7 +84,8 @@ void stop()
 {
     TIM_Cmd(TIM1, DISABLE);
     TIM_Cmd(TIM2, DISABLE);
-	EVAL_AUDIO_Stop(CODEC_PDWN_SW);
+	//EVAL_AUDIO_Stop(CODEC_PDWN_SW);
+	Audio_MAL_Stop();
     //DAC_Cmd(DAC_Channel_1, DISABLE);
     //DAC_Cmd(DAC_Channel_2, DISABLE);
 

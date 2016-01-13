@@ -248,7 +248,7 @@ static void     Delay(__IO uint32_t nCount);
 static void     Audio_MAL_Init(void);
 static void     Audio_MAL_DeInit(void);
 static void     Audio_MAL_PauseResume(uint32_t Cmd, uint32_t Addr);
-static void     Audio_MAL_Stop(void);
+//static void     Audio_MAL_Stop(void);
 /*----------------------------------------------------------------------------*/
 
  /* DMA Stream definitions */
@@ -313,19 +313,20 @@ void EVAL_AUDIO_SetAudioInterface(uint32_t Interface)
 uint32_t EVAL_AUDIO_Init(uint16_t OutputDevice, uint8_t Volume, uint32_t AudioFreq)
 {    
   /* Perform low layer Codec initialization */
-  if (Codec_Init(OutputDevice, VOLUME_CONVERT(Volume), AudioFreq) != 0)
+  /*if (Codec_Init(OutputDevice, VOLUME_CONVERT(Volume), AudioFreq) != 0)
   {
     return 1;                
   }
-  else
-  {    
+  else*/
+  Codec_GPIO_Init();   
+  Codec_AudioInterface_Init(AudioFreq);  
+    
     /* I2S data transfer preparation:
     Prepare the Media to be used for the audio transfer from memory to I2S peripheral */
     Audio_MAL_Init();
     
     /* Return 0 when all operations are OK */
     return 0;
-  }
 }
 
 /**
@@ -619,22 +620,22 @@ static uint32_t Codec_Init(uint16_t OutputDevice, uint8_t Volume, uint32_t Audio
   Codec_Reset();
 
   /* Initialize the Control interface of the Audio Codec */
-  Codec_CtrlInterface_Init();     
+  //Codec_CtrlInterface_Init();     
   
   /* Keep Codec powered OFF */
-  counter += Codec_WriteRegister(0x02, 0x01);  
+  //counter += Codec_WriteRegister(0x02, 0x01);  
       
-  counter += Codec_WriteRegister(0x04, 0xAF); /* SPK always OFF & HP always ON */
-  OutputDev = 0xAF;
+  //counter += Codec_WriteRegister(0x04, 0xAF); /* SPK always OFF & HP always ON */
+  //OutputDev = 0xAF;
   
   /* Clock configuration: Auto detection */  
-  counter += Codec_WriteRegister(0x05, 0x81);
+  //counter += Codec_WriteRegister(0x05, 0x81);
   
   /* Set the Slave Mode and the audio Standard */  
-  counter += Codec_WriteRegister(0x06, CODEC_STANDARD);
+  //counter += Codec_WriteRegister(0x06, CODEC_STANDARD);
       
   /* Set the Master volume */
-  Codec_VolumeCtrl(Volume);
+  //Codec_VolumeCtrl(Volume);
   
   if (CurrAudioInterface == AUDIO_INTERFACE_DAC)
   {
@@ -858,13 +859,13 @@ static uint32_t Codec_Mute(uint32_t Cmd)
 static void Codec_Reset(void)
 {
   /* Power Down the codec */
-  GPIO_WriteBit(AUDIO_RESET_GPIO, AUDIO_RESET_PIN, Bit_RESET);
+  //GPIO_WriteBit(AUDIO_RESET_GPIO, AUDIO_RESET_PIN, Bit_RESET);
 
   /* wait for a delay to insure registers erasing */
   Delay(CODEC_RESET_DELAY); 
   
   /* Power on the codec */
-  GPIO_WriteBit(AUDIO_RESET_GPIO, AUDIO_RESET_PIN, Bit_SET);
+  //GPIO_WriteBit(AUDIO_RESET_GPIO, AUDIO_RESET_PIN, Bit_SET);
 }
 
 /**
@@ -1181,26 +1182,26 @@ static void Codec_GPIO_Init(void)
   RCC_AHB1PeriphClockCmd(AUDIO_RESET_GPIO_CLK,ENABLE);
   
   /* Audio reset pin configuration -------------------------------------------------*/
-  GPIO_InitStructure.GPIO_Pin = AUDIO_RESET_PIN; 
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
-  GPIO_Init(AUDIO_RESET_GPIO, &GPIO_InitStructure);    
+  //GPIO_InitStructure.GPIO_Pin = AUDIO_RESET_PIN; 
+  //GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+  //GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  //GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  //GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
+  //GPIO_Init(AUDIO_RESET_GPIO, &GPIO_InitStructure);    
   
   /* Enable I2S and I2C GPIO clocks */
   RCC_AHB1PeriphClockCmd(CODEC_I2C_GPIO_CLOCK | CODEC_I2S_GPIO_CLOCK, ENABLE);
 
   /* CODEC_I2C SCL and SDA pins configuration -------------------------------------*/
-  GPIO_InitStructure.GPIO_Pin = CODEC_I2C_SCL_PIN | CODEC_I2C_SDA_PIN; 
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
-  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
-  GPIO_Init(CODEC_I2C_GPIO, &GPIO_InitStructure);     
+  //GPIO_InitStructure.GPIO_Pin = CODEC_I2C_SCL_PIN | CODEC_I2C_SDA_PIN; 
+  //GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+  //GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  //GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
+  //GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
+  //GPIO_Init(CODEC_I2C_GPIO, &GPIO_InitStructure);     
   /* Connect pins to I2C peripheral */
-  GPIO_PinAFConfig(CODEC_I2C_GPIO, CODEC_I2S_SCL_PINSRC, CODEC_I2C_GPIO_AF);  
-  GPIO_PinAFConfig(CODEC_I2C_GPIO, CODEC_I2S_SDA_PINSRC, CODEC_I2C_GPIO_AF);  
+  //GPIO_PinAFConfig(CODEC_I2C_GPIO, CODEC_I2S_SCL_PINSRC, CODEC_I2C_GPIO_AF);  
+  //GPIO_PinAFConfig(CODEC_I2C_GPIO, CODEC_I2S_SDA_PINSRC, CODEC_I2C_GPIO_AF);  
 
   /* CODEC_I2S pins configuration: WS, SCK and SD pins -----------------------------*/
   GPIO_InitStructure.GPIO_Pin = CODEC_I2S_SCK_PIN | CODEC_I2S_SD_PIN; 
@@ -1599,7 +1600,7 @@ static void Audio_MAL_PauseResume(uint32_t Cmd, uint32_t Addr)
   * @param  None
   * @retval None
   */
-static void Audio_MAL_Stop(void)
+void Audio_MAL_Stop(void)
 {   
   /* Stop the Transfer on the I2S side: Stop and disable the DMA stream */
   DMA_Cmd(AUDIO_MAL_DMA_STREAM, DISABLE);
