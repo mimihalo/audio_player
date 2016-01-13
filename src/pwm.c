@@ -21,8 +21,10 @@ int i;
 
 uint16_t *buf;
 uint16_t *buf2;
-uint16_t pbuf1[2];
-uint16_t pbuf2[2];
+//uint16_t pbuf1[2];
+//uint16_t pbuf2[2];
+uint16_t *pbuf1;
+uint16_t *pbuf2;
 static uint8_t readBuf[READBUF_SIZE];
 int chunck2_size = 0;
 uint8_t cur_buf = 0;
@@ -66,13 +68,6 @@ int play(char * name)
         buf2[i] = 2000;
     }
 	
-	/* Initialize I2S interface */  
-	EVAL_AUDIO_SetAudioInterface(AUDIO_INTERFACE_I2S);
-
-	//WaveFileStatus = WavePlayer_WaveParsing(&wavelen);
-	/* Initialize the Audio codec and all related peripherals (I2S, I2C, IOExpander, IOs...) */  
-	EVAL_AUDIO_Init(OUTPUT_DEVICE_AUTO, 80, I2S_AudioFreq_48k );  
-	
     TIM_Cmd(TIM1, ENABLE);
     TIM_Cmd(TIM2, ENABLE);
     //DAC_Cmd(DAC_Channel_1, ENABLE);
@@ -106,6 +101,10 @@ void player_init(void)
     PWM_RCC_Configuration();
     //DAC_Configuration();
     hMP3Decoder = MP3InitDecoder();
+	
+	/* Initialize I2S interface */  
+	EVAL_AUDIO_SetAudioInterface(AUDIO_INTERFACE_I2S);
+	EVAL_AUDIO_Init(OUTPUT_DEVICE_AUTO, 50, I2S_AudioFreq_48k );  
 
     PWM_GPIO_Configuration();
     PWM_TIM2_Configuration();
@@ -141,8 +140,10 @@ void TIM1_UP_TIM10_IRQHandler(void)
 
         TIM1->CCR1 = buf[cur_point*2];
         TIM1->CCR2 = buf[cur_point*2+1];
-		pbuf1[0]=buf[cur_point*2];
-		pbuf1[1]=buf[cur_point*2+1];
+		//pbuf1[0]=buf[cur_point*2];
+		//pbuf1[1]=buf[cur_point*2+1];
+		//Audio_MAL_Play((uint32_t)pbuf1, 2*sizeof(uint16_t));
+		pbuf1=&buf[cur_point*2];
 		Audio_MAL_Play((uint32_t)pbuf1, 2*sizeof(uint16_t));
 		
         // if(cur_point%16 == 0)
@@ -168,10 +169,11 @@ void TIM1_UP_TIM10_IRQHandler(void)
     {
         TIM1->CCR1 = buf2[cur_point*2];
         TIM1->CCR2 = buf2[cur_point*2+1];
-		pbuf2[0]=buf2[cur_point*2];
-		pbuf2[1]=buf2[cur_point*2+1];
+		//pbuf2[0]=buf2[cur_point*2];
+		//pbuf2[1]=buf2[cur_point*2+1];
+		//Audio_MAL_Play((uint32_t)pbuf2, 2*sizeof(uint16_t));
+		pbuf2=&buf2[cur_point*2];
 		Audio_MAL_Play((uint32_t)pbuf2, 2*sizeof(uint16_t));
-		//Audio_MAL_Play((uint32_t)buf2, BUF_LENGTH*sizeof(uint16_t));
 
         // if(cur_point%16 == 0)
         // {

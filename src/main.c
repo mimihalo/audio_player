@@ -36,9 +36,10 @@ int main()
 	RCC_Configuration();
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
 
-    gui_init();
+    //gui_init();
     player_init();
-
+	gui_init();
+	
     vSemaphoreCreateBinary(play_sem);
     play_queue = xQueueCreate(1, sizeof(FILINFO));
     while (f_mount(&FatFs, "/", 1) != FR_OK) {
