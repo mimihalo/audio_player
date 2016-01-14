@@ -9,7 +9,7 @@
 #include "mp3common.h"
 #include "gui.h"
 #include "stm32f4_discovery_audio_codec.h"
-#include "waveplayer.h"
+//#include "waveplayer.h"
 
 uint32_t play_time_other = 0;
 uint32_t play_time_sec = 0;
@@ -44,10 +44,53 @@ int count = 0;
 int ok = 1;
 int ismp3 = 0;
 
-extern __IO ErrorCode WaveFileStatus = Unvalid_RIFF_ID;
-extern WAVE_FormatTypeDef WAVE_Format;
-extern uint32_t wavelen;
+//extern uint16_t *buffer1;
+//extern uint16_t *buffer2;
+//UINT BytesRead;
+FIL fileR;
 
+int I2SWavePlay()
+{
+	FRESULT pfr1,pfr2;
+	UINT BytesRead;
+	int buffer_switch=0;
+  pfr1=f_read (&fileR, pbuf1, BUF_LENGTH, &BytesRead); 
+  
+	if(pfr1==0 && BytesRead!=0)
+		Audio_MAL_Play((uint32_t)pbuf1, BUF_LENGTH);
+	else
+		return -1;
+
+	pfr2=f_read (&fileR, pbuf2, BUF_LENGTH, &BytesRead);
+	pfr1=0;
+  buffer_switch = 1;
+ 
+  while((pfr1!=0 || pfr2!=0)&& BytesRead!=0)
+  { 
+    /* Test on the command: Playing */
+      if(buffer_switch == 0)
+      {
+        /* Play data from buffer1 */
+        Audio_MAL_Play((uint32_t)pbuf1, BUF_LENGTH);
+        /* Store data in buffer2 */
+		pfr1=0;
+        pfr2=f_read (&fileR, pbuf2, BUF_LENGTH, &BytesRead);
+        buffer_switch = 1;
+      }
+      else 
+      {   
+        /* Play data from buffer2 */
+        Audio_MAL_Play((uint32_t)pbuf2, BUF_LENGTH);
+        /* Store data in buffer1 */
+		pfr2=0;
+        pfr1=f_read (&fileR, pbuf1, BUF_LENGTH, &BytesRead);
+        buffer_switch = 0;
+      }
+  }
+  stop();
+  //WavePlayerStop(); 
+
+}
 
 void play_test(void *p){
     play("C128.mp3");
@@ -59,6 +102,10 @@ int play(char * name)
         return -1;
     }
 
+	if (f_open(&fileR, name, FA_OPEN_ALWAYS | FA_READ) != FR_OK) {
+        return -1;
+    }
+	
     if (strstr(name, "MP3")) ismp3 = 1;
     else ismp3 = 0;
 
@@ -67,6 +114,11 @@ int play(char * name)
         buf[i] = 2000;
         buf2[i] = 2000;
     }
+	
+	if(ismp3==0)
+	{
+		I2SWavePlay();
+	}
 	
     TIM_Cmd(TIM1, ENABLE);
     TIM_Cmd(TIM2, ENABLE);
@@ -113,6 +165,8 @@ void player_init(void)
 
     buf = pvPortMalloc(sizeof(uint16_t)*BUF_LENGTH);
     buf2 = pvPortMalloc(sizeof(uint16_t)*BUF_LENGTH);
+	pbuf1 = pvPortMalloc(sizeof(uint16_t)*BUF_LENGTH);
+	pbuf2 = pvPortMalloc(sizeof(uint16_t)*BUF_LENGTH);
 }
 
 void  PWM_RCC_Configuration(void)
@@ -141,11 +195,15 @@ void TIM1_UP_TIM10_IRQHandler(void)
 
         TIM1->CCR1 = buf[cur_point*2];
         TIM1->CCR2 = buf[cur_point*2+1];
+		
+		//v1
 		//pbuf1[0]=buf[cur_point*2];
 		//pbuf1[1]=buf[cur_point*2+1];
 		//Audio_MAL_Play((uint32_t)pbuf1, 2*sizeof(uint16_t));
-		pbuf1=&buf[cur_point*2];
-		Audio_MAL_Play((uint32_t)pbuf1, 2*sizeof(uint16_t));
+		
+		//v2
+		//pbuf1=&buf[cur_point*2];
+		//Audio_MAL_Play((uint32_t)pbuf1, 2*sizeof(uint16_t));
 		
         // if(cur_point%16 == 0)
         // {
@@ -170,11 +228,15 @@ void TIM1_UP_TIM10_IRQHandler(void)
     {
         TIM1->CCR1 = buf2[cur_point*2];
         TIM1->CCR2 = buf2[cur_point*2+1];
+		
+		//v1
 		//pbuf2[0]=buf2[cur_point*2];
 		//pbuf2[1]=buf2[cur_point*2+1];
 		//Audio_MAL_Play((uint32_t)pbuf2, 2*sizeof(uint16_t));
-		pbuf2=&buf2[cur_point*2];
-		Audio_MAL_Play((uint32_t)pbuf2, 2*sizeof(uint16_t));
+		
+		//v2
+		//pbuf2=&buf2[cur_point*2];
+		//Audio_MAL_Play((uint32_t)pbuf2, 2*sizeof(uint16_t));
 
         // if(cur_point%16 == 0)
         // {
@@ -251,7 +313,7 @@ void TIM2_IRQHandler(void)
     {
         if(cur_buf == 0)   
         {
-ok = 1;
+			ok = 1;
             if(ismp3)decode(buf2);
             else    {
                 fr = f_read(&fil, buf2, BUF_LENGTH*sizeof(uint16_t), &cnt);

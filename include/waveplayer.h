@@ -24,7 +24,16 @@
 #define __WAVE_PLAYER_H
 
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
+#include "stm32f4xx.h"
+#include "stm32f4xx_tim.h"
+#include "stm32f4xx_rcc.h"
+#include "stm32f4xx_spi.h"
+#include "misc.h"
+#include "stm32f4xx_exti.h"
+#include "stm32f4xx_syscfg.h"
+#include "stm32f4_discovery_audio_codec.h"
+#include "ff.h"
+#include <stdio.h>
 
 /* Exported types ------------------------------------------------------------*/
 typedef enum
@@ -78,6 +87,11 @@ typedef enum
 #define  BITS_PER_SAMPLE_8                   8
 #define  BITS_PER_SAMPLE_16                  16
 
+  #define RAM_BUFFER_SIZE         1500  /* 3Kbytes (1500 x 16 bit) as a RAM buffer size.
+                                           More the size is higher, the recorded quality is better */ 
+  #define TIME_REC                3000 /* Recording time in millisecond(Systick Time Base*TIME_REC= 10ms*3000)
+                                         (default: 30s) */
+
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
 void TimingDelay_Decrement(void);
@@ -88,10 +102,12 @@ int WavePlayerInit(uint32_t AudioFreq);
 void WavePlayerStop(void);
 void WavePlayerPauseResume(uint8_t state);
 uint8_t WaveplayerCtrlVolume(uint8_t volume);
-void WavePlayerStart(void);
+void WavePlayerStart(char *fname);
 void WavePlayer_CallBack(void);
 uint32_t ReadUnit(uint8_t *buffer, uint8_t idx, uint8_t NbrOfBytes, Endianness BytesFormat);
 static ErrorCode WavePlayer_WaveParsing(uint32_t *FileLen);
+void TimingDelay_Decrement(void);
+void Delay(__IO uint32_t nTime);
 
 #endif /* __WAVE_PLAYER_H */
 

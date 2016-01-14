@@ -126,8 +126,8 @@ OBJS += \
     $(PWD)/src/mp3/scalfact.o \
     $(PWD)/src/mp3/asmmisc.o \
     $(PWD)/src/mp3/asmpoly.o \
-	$(PWD)/src/stm32f4_discovery_audio_codec.o \
-	$(PWD)/src/waveplayer.o
+	$(PWD)/src/stm32f4_discovery_audio_codec.o
+	
 
 CFLAGS += -I $(PWD)/include
 

@@ -20,18 +20,18 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
+#include "waveplayer.h"
 
 #include <string.h>
 
 //#define MEDIA_USB_KEY
 
 #ifdef I2S_24BIT
-extern uint16_t sampleBuffer[((48*8) * 200) / 2];	//sample frequency (1 packet per ms) times format (bytes)
+uint16_t sampleBuffer[((48*8) * 200) / 2];	//sample frequency (1 packet per ms) times format (bytes)
 #else
-extern uint16_t sampleBuffer[((48*4) * 300) / 2];	//sample frequency (1 packet per ms) times format (bytes)
+uint16_t sampleBuffer[((48*4) * 300) / 2];	//sample frequency (1 packet per ms) times format (bytes)
 #endif
-extern int inCurIndex;
+int inCurIndex;
 
 //use just the minimum needed
 __IO uint8_t volume = 80;
@@ -40,7 +40,7 @@ static __IO uint32_t TimingDelay;
 uint8_t Buffer[6];
 static void Mems_Config(void);
 
-#if 0
+#if 1
 /** @addtogroup STM32F4-Discovery_Audio_Player_Recorder
 * @{
 */ 
@@ -50,7 +50,7 @@ static void Mems_Config(void);
 #if defined MEDIA_IntFLASH
  /* This is an audio file stored in the Flash memory as a constant table of 16-bit data.
     The audio format should be WAV (raw / PCM) 16-bits, Stereo (sampling rate may be modified) */
-extern uint16_t AUDIO_SAMPLE[];
+uint16_t AUDIO_SAMPLE[];
 /* Audio file size and start address are defined here since the audio file is 
     stored in Flash memory as a constant table of 16-bit data */
 #define AUDIO_FILE_SZE          990000
@@ -59,42 +59,29 @@ extern uint16_t AUDIO_SAMPLE[];
 
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-#if defined MEDIA_USB_KEY
- extern __IO uint8_t Command_index;
+ __IO uint8_t Command_index=0;
  static uint32_t wavelen = 0;
- static char* WaveFileName ;
  static __IO uint32_t SpeechDataOffset = 0x00;
  __IO ErrorCode WaveFileStatus = Unvalid_RIFF_ID;
  UINT BytesRead;
  WAVE_FormatTypeDef WAVE_Format;
  uint16_t buffer1[_MAX_SS] ={0x00};
  uint16_t buffer2[_MAX_SS] ={0x00};
+ //uint16_t *buffer1;
+ //uint16_t *buffer2;
  uint8_t buffer_switch = 1;
- extern FATFS FatFs;
- extern FIL file;
- extern FIL fileR;
- extern DIR dir;
- extern FILINFO fno;
+ FIL fileR;
  extern uint16_t *CurrentPos;
- extern uint8_t WaveRecStatus;
-#endif
 
-__IO uint32_t XferCplt = 0;
 __IO uint32_t WaveCounter;
 __IO uint32_t WaveDataLength = 0;
-extern __IO uint8_t Count;
-extern __IO uint8_t RepeatState ;
-extern __IO uint8_t LED_Toggle;
-extern __IO uint8_t PauseResumeStatus ;
 extern uint32_t AudioRemSize; 
 
 /* Private function prototypes -----------------------------------------------*/
 #if 0
 static void EXTILine_Config(void);
 #endif
-#if defined MEDIA_USB_KEY
 static ErrorCode WavePlayer_WaveParsing(uint32_t *FileLen);
-#endif
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -106,79 +93,13 @@ static ErrorCode WavePlayer_WaveParsing(uint32_t *FileLen);
 
 void WavePlayBack(uint32_t AudioFreq)
 { 
-  /* 
-  Normal mode description:
-  Start playing the audio file (using DMA stream) .
-  Using this mode, the application can run other tasks in parallel since 
-  the DMA is handling the Audio Transfer instead of the CPU.
-  The only task remaining for the CPU will be the management of the DMA 
-  Transfer Complete interrupt or the Half Transfer Complete interrupt in 
-  order to load again the buffer and to calculate the remaining data.  
-  Circular mode description:
-  Start playing the file from a circular buffer, once the DMA is enabled it 
-  always run. User has to fill periodically the buffer with the audio data 
-  using Transfer complete and/or half transfer complete interrupts callbacks 
-  (EVAL_AUDIO_TransferComplete_CallBack() or EVAL_AUDIO_HalfTransfer_CallBack()...
-  In this case the audio data file is smaller than the DMA max buffer 
-  size 65535 so there is no need to load buffer continuously or manage the 
-  transfer complete or Half transfer interrupts callbacks. */  
-  
   /* Start playing */
   AudioPlayStart = 1;
-  RepeatState =0;
-#if defined MEDIA_IntFLASH 
-  
-  /* Initialize wave player (Codec, DMA, I2C) */
-  WavePlayerInit(AudioFreq);
-  
-  /* Play on */
-//#ifdef FLASH_FILE
-  ////AudioFlashPlay((uint16_t*)(AUDIO_SAMPLE + AUDIO_START_ADDRESS),AUDIO_FILE_SZE,AUDIO_START_ADDRESS);
-//#else
-  ////memcpy(sampleBuffer, (uint16_t*)(AUDIO_SAMPLE + AUDIO_START_ADDRESS), sizeof(sampleBuffer));
-  //AudioFlashPlay((uint16_t*)sampleBuffer, sizeof(sampleBuffer), 0);
-//#endif
-  
-  /* LED Blue Start toggling */
-  LED_Toggle = 6;
 
-#if 0
-  /* Infinite loop */
-  while(1)
-  { 
-    /* check on the repeat status */
-    if (RepeatState == 0)
-    {
-      if (PauseResumeStatus == 0)
-      {
-        /* LED Blue Stop Toggling */
-        LED_Toggle = 0;
-        /* Pause playing */
-        WavePlayerPauseResume(PauseResumeStatus);
-        PauseResumeStatus = 2;
-      }
-      else if (PauseResumeStatus == 1)
-      {
-        /* LED Blue Toggling */
-        LED_Toggle = 6;
-        /* Resume playing */
-        WavePlayerPauseResume(PauseResumeStatus);
-        PauseResumeStatus = 2;
-      }
-    }
-    else
-    {
-      /* Stop playing */
-      WavePlayerStop();
-      /* Green LED toggling */
-      LED_Toggle = 4;
-    }
-  }
-#endif
-  
-#elif defined MEDIA_USB_KEY
+#if 1
   /* Initialize wave player (Codec, DMA, I2C) */
-  WavePlayerInit(AudioFreq);
+  //WavePlayerInit(AudioFreq);
+  EVAL_AUDIO_Init(OUTPUT_DEVICE_AUTO, 50, AudioFreq );
   AudioRemSize   = 0; 
 
   /* Get Data from USB Key */
@@ -189,36 +110,12 @@ void WavePlayBack(uint32_t AudioFreq)
   /* Start playing wave */
   Audio_MAL_Play((uint32_t)buffer1, _MAX_SS);
   buffer_switch = 1;
-  XferCplt = 0;
-  LED_Toggle = 6;
-  PauseResumeStatus = 1;
-  Count = 0;
  
-  while((WaveDataLength != 0) &&  HCD_IsDeviceConnected(&USB_OTG_Core))
+  while(WaveDataLength != 0)
   { 
     /* Test on the command: Playing */
-    if (Command_index == 0)
+    if (1)
     { 
-      /* wait for DMA transfer complete */
-      while((XferCplt == 0) &&  HCD_IsDeviceConnected(&USB_OTG_Core))
-      {
-        if (PauseResumeStatus == 0)
-        {
-          /* Pause Playing wave */
-          LED_Toggle = 0;
-          WavePlayerPauseResume(PauseResumeStatus);
-          PauseResumeStatus = 2;
-        }
-        else if (PauseResumeStatus == 1)
-        {
-          LED_Toggle = 6;
-          /* Resume Playing wave */
-          WavePlayerPauseResume(PauseResumeStatus);
-          PauseResumeStatus = 2;
-        }  
-      }
-      XferCplt = 0;
-
       if(buffer_switch == 0)
       {
         /* Play data from buffer1 */
@@ -236,25 +133,15 @@ void WavePlayBack(uint32_t AudioFreq)
         buffer_switch = 0;
       } 
     }
-    else 
+    /*else 
     {
       WavePlayerStop();
       WaveDataLength = 0;
       RepeatState =0;
       break;
-    }
+    }*/
   }
-#if defined PLAY_REPEAT_OFF 
-  RepeatState = 1;
   WavePlayerStop();
-  if (Command_index == 0)
-    LED_Toggle = 4;
-#else 
-  LED_Toggle = 7;
-  RepeatState = 0;
-  AudioPlayStart = 0;
-  WavePlayerStop();
-#endif
 #endif 
 
 }
@@ -264,21 +151,21 @@ void WavePlayBack(uint32_t AudioFreq)
   * @param  state: if it is equal to 0 pause Playing else resume playing
   * @retval None
   */
-void WavePlayerPauseResume(uint8_t state)
+/*void WavePlayerPauseResume(uint8_t state)
 { 
   EVAL_AUDIO_PauseResume(state);   
-}
+}*/
 
 /**
   * @brief  Configure the volune
   * @param  vol: volume value
   * @retval None
   */
-uint8_t WaveplayerCtrlVolume(uint8_t vol)
+/*uint8_t WaveplayerCtrlVolume(uint8_t vol)
 { 
   EVAL_AUDIO_VolumeCtl(vol);
   return 0;
-}
+}*/
 
 
 /**
@@ -288,7 +175,7 @@ uint8_t WaveplayerCtrlVolume(uint8_t vol)
   */
 void WavePlayerStop(void)
 { 
-  EVAL_AUDIO_Stop(CODEC_PDWN_SW);
+  //EVAL_AUDIO_Stop(CODEC_PDWN_SW);
 }
 #endif
 
@@ -297,39 +184,24 @@ void WavePlayerStop(void)
 * @param  AudioFreq: Audio sampling frequency
 * @retval None
 */
-int WavePlayerInit(uint32_t AudioFreq)
+/*int WavePlayerInit(uint32_t AudioFreq)
 { 
-#if 0
-  /* MEMS Accelerometer configure to manage PAUSE, RESUME and Control Volume operation */
-  Mems_Config();
-#endif
   
-#if 0
-  /* EXTI configure to detect interrupts on Z axis click and on Y axis high event */
-  EXTILine_Config();  
-#endif
-
-  /* Initialize I2S interface */  
-  EVAL_AUDIO_SetAudioInterface(AUDIO_INTERFACE_I2S);
-  
-  /* Initialize the Audio codec and all related peripherals (I2S, I2C, IOExpander, IOs...) */  
-  EVAL_AUDIO_Init(OUTPUT_DEVICE_AUTO, volume, AudioFreq );  
   
   return 0;
-}
+}*/
 
 /**
   * @brief  MEMS accelerometer management of the timeout situation.
   * @param  None.
   * @retval None.
   */
-uint32_t LIS302DL_TIMEOUT_UserCallback(void)
+/*uint32_t LIS302DL_TIMEOUT_UserCallback(void)
 {
-  /* MEMS Accelerometer Timeout error occured */
   while (1)
   {   
   }
-}
+}*/
 
 #if 0
 /**
@@ -487,45 +359,22 @@ void TimingDelay_Decrement(void)
   }
 }
 
-#if 0
-
-#if defined MEDIA_USB_KEY
+#if 1
 
 /**
   * @brief  Start wave player
   * @param  None
   * @retval None
   */
-void WavePlayerStart(void)
+void WavePlayerStart(char *fname)
 {
-  char path[] = "0:/";
+  //char path[] = "0:/";
   
   buffer_switch = 1;
-  
-  /* Get the read out protection status */
-  if (f_opendir(&dir, path)!= FR_OK)
-  {
-    while(1)
-    {
-      STM_EVAL_LEDToggle(LED5);
-      Delay(10);
-    }    
-  }
-  else
-  {
-    if (WaveRecStatus == 1)
-    {
-      WaveFileName = REC_WAVE_NAME;
-    }
-    else
-    {
-      WaveFileName = WAVE_NAME; 
-    }
     /* Open the wave file to be played */
-    if (f_open(&fileR, WaveFileName , FA_READ) != FR_OK)
+    if (f_open(&fileR, fname , FA_READ) != FR_OK)
     {
-      STM_EVAL_LEDOn(LED5);
-      Command_index = 1;
+      return -1;
     }
     else
     {    
@@ -539,19 +388,9 @@ void WavePlayerStart(void)
         /* Set WaveDataLenght to the Speech wave length */
         WaveDataLength = WAVE_Format.DataSize;
       }
-      else /* invalid wave file */
-      {
-        /* Led Red Toggles in infinite loop */
-        while(1)
-        {
-          STM_EVAL_LEDToggle(LED5);
-          Delay(10);
-        }
-      }
       /* Play the wave */
       WavePlayBack(WAVE_Format.SampleRate);
     }    
-  }
 }
 
 /**
@@ -559,6 +398,7 @@ void WavePlayerStart(void)
   * @param  None
   * @retval None
   */
+#if 0
 void WavePlayer_CallBack(void)
 {
   /* Reset the wave player variables */
@@ -570,16 +410,16 @@ void WavePlayer_CallBack(void)
   Count = 0;
   
   /* Stops the codec */
-  EVAL_AUDIO_Stop(CODEC_PDWN_HW);
+  //EVAL_AUDIO_Stop(CODEC_PDWN_HW);
   /* LED off */
-  STM_EVAL_LEDOff(LED3);
-  STM_EVAL_LEDOff(LED4);
-  STM_EVAL_LEDOff(LED6);
+  //STM_EVAL_LEDOff(LED3);
+  //STM_EVAL_LEDOff(LED4);
+  //STM_EVAL_LEDOff(LED6);
   
   /* TIM Interrupts disable */
   TIM_ITConfig(TIM4, TIM_IT_CC1, DISABLE);
-  f_mount(0, NULL);
 } 
+#endif
 
 /**
   * @brief  Checks the format of the .WAV file and gets information about
@@ -724,17 +564,15 @@ uint32_t ReadUnit(uint8_t *buffer, uint8_t idx, uint8_t NbrOfBytes, Endianness B
 }
 #endif
 
-#endif
-
 /**
 * @brief  configure the mems accelerometer
 * @param  None
 * @retval None
 */
-static void Mems_Config(void)
+/*static void Mems_Config(void)
 { 
   
-}
+}*/
 
 #if 0
 
