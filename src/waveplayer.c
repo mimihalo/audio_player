@@ -21,24 +21,23 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "waveplayer.h"
-
+#include "gui.h"
 #include <string.h>
 
 //#define MEDIA_USB_KEY
 
 #ifdef I2S_24BIT
-uint16_t sampleBuffer[((48*8) * 200) / 2];	//sample frequency (1 packet per ms) times format (bytes)
+//uint16_t sampleBuffer[((48*8) * 200) / 2];	//sample frequency (1 packet per ms) times format (bytes)
 #else
-uint16_t sampleBuffer[((48*4) * 300) / 2];	//sample frequency (1 packet per ms) times format (bytes)
+//uint16_t sampleBuffer[((48*4) * 300) / 2];	//sample frequency (1 packet per ms) times format (bytes)
 #endif
-int inCurIndex;
+uint16_t *sampleBuffer;
 
 //use just the minimum needed
-__IO uint8_t volume = 80;
 __IO uint8_t AudioPlayStart = 0;
 static __IO uint32_t TimingDelay;
-uint8_t Buffer[6];
-static void Mems_Config(void);
+//uint8_t Buffer[6];
+//static void Mems_Config(void);
 
 #if 1
 /** @addtogroup STM32F4-Discovery_Audio_Player_Recorder
@@ -57,21 +56,21 @@ uint16_t AUDIO_SAMPLE[];
 #define AUDIO_START_ADDRESS     58 /* Offset relative to audio file header size */
 #endif
 
+
+
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
- __IO uint8_t Command_index=0;
  static uint32_t wavelen = 0;
  static __IO uint32_t SpeechDataOffset = 0x00;
  __IO ErrorCode WaveFileStatus = Unvalid_RIFF_ID;
  UINT BytesRead;
  WAVE_FormatTypeDef WAVE_Format;
- uint16_t buffer1[_MAX_SS] ={0x00};
- uint16_t buffer2[_MAX_SS] ={0x00};
- //uint16_t *buffer1;
- //uint16_t *buffer2;
+ //uint16_t buffer1[_MAX_SS] ={0x00};
+ //uint16_t buffer2[_MAX_SS] ={0x00};
+ uint16_t *buffer1;
+ uint16_t *buffer2;
  uint8_t buffer_switch = 1;
  FIL fileR;
- extern uint16_t *CurrentPos;
 
 __IO uint32_t WaveCounter;
 __IO uint32_t WaveDataLength = 0;
@@ -93,25 +92,28 @@ static ErrorCode WavePlayer_WaveParsing(uint32_t *FileLen);
 
 void WavePlayBack(uint32_t AudioFreq)
 { 
+	display_normal_line(0, "Start Play");
   /* Start playing */
   AudioPlayStart = 1;
+  int line=1;
 
 #if 1
   /* Initialize wave player (Codec, DMA, I2C) */
   //WavePlayerInit(AudioFreq);
-  EVAL_AUDIO_Init(OUTPUT_DEVICE_AUTO, 50, AudioFreq );
+  EVAL_AUDIO_Init(OUTPUT_DEVICE_AUTO, 100, AudioFreq );
   AudioRemSize   = 0; 
 
   /* Get Data from USB Key */
-  f_lseek(&fileR, WaveCounter);
-  f_read (&fileR, buffer1, _MAX_SS, &BytesRead); 
-  f_read (&fileR, buffer2, _MAX_SS, &BytesRead);
+  f_read (&fileR, buffer1, BUF_LENGTH, &BytesRead); 
+  f_read (&fileR, buffer2, BUF_LENGTH, &BytesRead);
  
   /* Start playing wave */
-  Audio_MAL_Play((uint32_t)buffer1, _MAX_SS);
+  
+  display_normal_line(1, "Play buf1");
+  Audio_MAL_Play((uint32_t)buffer1, BUF_LENGTH);
   buffer_switch = 1;
  
-  while(WaveDataLength != 0)
+  while(WaveDataLength > 0)
   { 
     /* Test on the command: Playing */
     if (1)
@@ -119,27 +121,26 @@ void WavePlayBack(uint32_t AudioFreq)
       if(buffer_switch == 0)
       {
         /* Play data from buffer1 */
-        Audio_MAL_Play((uint32_t)buffer1, _MAX_SS);
+        //Audio_MAL_Play((uint32_t)buffer1, BUF_LENGTH);
+		display_normal_line(2, "Play buf2 -");
+		EVAL_AUDIO_Play(buffer1, BytesRead);
+		WaveDataLength-=BytesRead;
         /* Store data in buffer2 */
-        f_read (&fileR, buffer2, _MAX_SS, &BytesRead);
+        f_read (&fileR, buffer2, BUF_LENGTH, &BytesRead);
         buffer_switch = 1;
       }
       else 
       {   
         /* Play data from buffer2 */
-        Audio_MAL_Play((uint32_t)buffer2, _MAX_SS);
+        //Audio_MAL_Play((uint32_t)BUF_LENGTH, BUF_LENGTH);
+		display_normal_line(3, "Play buf1 -");
+		EVAL_AUDIO_Play(buffer2, BytesRead);
+		WaveDataLength-=BytesRead;
         /* Store data in buffer1 */
-        f_read (&fileR, buffer1, _MAX_SS, &BytesRead);
+        f_read (&fileR, buffer1, BUF_LENGTH, &BytesRead);
         buffer_switch = 0;
       } 
     }
-    /*else 
-    {
-      WavePlayerStop();
-      WaveDataLength = 0;
-      RepeatState =0;
-      break;
-    }*/
   }
   WavePlayerStop();
 #endif 
@@ -231,40 +232,9 @@ Below some examples of callback implementations.
 */
 void EVAL_AUDIO_TransferComplete_CallBack(uint32_t pBuffer, uint32_t Size)
 {
-  /* Calculate the remaining audio data in the file and the new size 
-  for the DMA transfer. If the Audio files size is less than the DMA max 
-  data transfer size, so there is no calculation to be done, just restart 
-  from the beginning of the file ... */
-  /* Check if the end of file has been reached */
-  
-#ifdef AUDIO_MAL_MODE_NORMAL  
-  
-#if defined MEDIA_IntFLASH
-
-#if defined PLAY_REPEAT_OFF
-  LED_Toggle = 4;
-  RepeatState = 1;
-  EVAL_AUDIO_Stop(CODEC_PDWN_HW);
-#else
-  /* Replay from the beginning */
-#ifdef FLASH_FILE
-  AudioFlashPlay((uint16_t*)(AUDIO_SAMPLE + AUDIO_START_ADDRESS),AUDIO_FILE_SZE,AUDIO_START_ADDRESS);
-#else
-  EVAL_AUDIO_Play((uint16_t*)sampleBuffer, sizeof(sampleBuffer));
-#endif
-#endif  
-  
-#elif defined MEDIA_USB_KEY  
-  XferCplt = 1;
-  if (WaveDataLength) WaveDataLength -= _MAX_SS;
-  if (WaveDataLength < _MAX_SS) WaveDataLength = 0;
-    
-#endif 
-    
-#else /* #ifdef AUDIO_MAL_MODE_CIRCULAR */
-  
-  
-#endif /* AUDIO_MAL_MODE_CIRCULAR */
+	//XferCplt = 1;
+	//if (WaveDataLength) WaveDataLength -= _MAX_SS;
+	//if (WaveDataLength < _MAX_SS) WaveDataLength = 0;
 }
 #endif
 
@@ -392,35 +362,6 @@ void WavePlayerStart(char *fname)
       WavePlayBack(WAVE_Format.SampleRate);
     }    
 }
-
-/**
-  * @brief  Reset the wave player
-  * @param  None
-  * @retval None
-  */
-#if 0
-void WavePlayer_CallBack(void)
-{
-  /* Reset the wave player variables */
-  RepeatState = 0;
-  AudioPlayStart =0;
-  LED_Toggle = 7;
-  PauseResumeStatus = 1;
-  WaveDataLength =0;
-  Count = 0;
-  
-  /* Stops the codec */
-  //EVAL_AUDIO_Stop(CODEC_PDWN_HW);
-  /* LED off */
-  //STM_EVAL_LEDOff(LED3);
-  //STM_EVAL_LEDOff(LED4);
-  //STM_EVAL_LEDOff(LED6);
-  
-  /* TIM Interrupts disable */
-  TIM_ITConfig(TIM4, TIM_IT_CC1, DISABLE);
-} 
-#endif
-
 /**
   * @brief  Checks the format of the .WAV file and gets information about
   *   the audio format. This is done by reading the value of a

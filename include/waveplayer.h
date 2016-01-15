@@ -71,6 +71,8 @@ typedef enum
 } ErrorCode;
 
 /* Exported constants --------------------------------------------------------*/
+#define BUF_LENGTH 2304
+
 #define  CHUNK_ID                            0x52494646  /* correspond to the letters 'RIFF' */
 #define  FILE_FORMAT                         0x57415645  /* correspond to the letters 'WAVE' */
 #define  FORMAT_ID                           0x666D7420  /* correspond to the letters 'fmt ' */

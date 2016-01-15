@@ -10,5 +10,5 @@ void gui_start(void *pvParameters);
 void gui_play(void *pvParameters);
 void next_song ();
 void gui_init();
-
+void display_normal_line(uint16_t line, char * str);
 #endif

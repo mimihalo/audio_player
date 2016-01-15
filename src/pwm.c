@@ -9,12 +9,12 @@
 #include "mp3common.h"
 #include "gui.h"
 #include "stm32f4_discovery_audio_codec.h"
-//#include "waveplayer.h"
+#include "waveplayer.h"
 
 uint32_t play_time_other = 0;
 uint32_t play_time_sec = 0;
 
-#define BUF_LENGTH 2304
+//#define BUF_LENGTH 2304
 #define READBUF_SIZE 2000
 
 int i;
@@ -23,8 +23,8 @@ uint16_t *buf;
 uint16_t *buf2;
 //uint16_t pbuf1[2];
 //uint16_t pbuf2[2];
-uint16_t *pbuf1;
-uint16_t *pbuf2;
+//uint16_t *pbuf1;
+//uint16_t *pbuf2;
 static uint8_t readBuf[READBUF_SIZE];
 int chunck2_size = 0;
 uint8_t cur_buf = 0;
@@ -44,24 +44,32 @@ int count = 0;
 int ok = 1;
 int ismp3 = 0;
 
-//extern uint16_t *buffer1;
-//extern uint16_t *buffer2;
+extern uint16_t *sampleBuffer;
+extern uint16_t *buffer1;
+extern uint16_t *buffer2;
 //UINT BytesRead;
-FIL fileR;
+extern FIL fileR;
 
+#if 0
 int I2SWavePlay()
 {
 	FRESULT pfr1,pfr2;
 	UINT BytesRead;
 	int buffer_switch=0;
-  pfr1=f_read (&fileR, pbuf1, BUF_LENGTH, &BytesRead); 
+  //pfr1=f_read (&fileR, pbuf1, BUF_LENGTH, &BytesRead); 
   
 	if(pfr1==0 && BytesRead!=0)
-		Audio_MAL_Play((uint32_t)pbuf1, BUF_LENGTH);
+	{
+		//Audio_MAL_Play((uint32_t)pbuf1, BUF_LENGTH);
+		//if(EVAL_AUDIO_Play(pbuf1, BUF_LENGTH*sizeof(uint16_t))!=0)
+			//return -1;
+	}
 	else
+	{
 		return -1;
+	}
 
-	pfr2=f_read (&fileR, pbuf2, BUF_LENGTH, &BytesRead);
+	//pfr2=f_read (&fileR, pbuf2, BUF_LENGTH, &BytesRead);
 	pfr1=0;
   buffer_switch = 1;
  
@@ -71,7 +79,8 @@ int I2SWavePlay()
       if(buffer_switch == 0)
       {
         /* Play data from buffer1 */
-        Audio_MAL_Play((uint32_t)pbuf1, BUF_LENGTH);
+        //Audio_MAL_Play((uint32_t)pbuf1, BUF_LENGTH);
+		EVAL_AUDIO_Play(pbuf1, BUF_LENGTH*sizeof(uint16_t));
         /* Store data in buffer2 */
 		pfr1=0;
         pfr2=f_read (&fileR, pbuf2, BUF_LENGTH, &BytesRead);
@@ -80,7 +89,8 @@ int I2SWavePlay()
       else 
       {   
         /* Play data from buffer2 */
-        Audio_MAL_Play((uint32_t)pbuf2, BUF_LENGTH);
+        //Audio_MAL_Play((uint32_t)pbuf2, BUF_LENGTH);
+		EVAL_AUDIO_Play(pbuf2, BUF_LENGTH*sizeof(uint16_t));
         /* Store data in buffer1 */
 		pfr2=0;
         pfr1=f_read (&fileR, pbuf1, BUF_LENGTH, &BytesRead);
@@ -89,8 +99,9 @@ int I2SWavePlay()
   }
   stop();
   //WavePlayerStop(); 
-
+	return 0;
 }
+#endif
 
 void play_test(void *p){
     play("C128.mp3");
@@ -98,13 +109,13 @@ void play_test(void *p){
 
 int play(char * name)
 {
-    if (f_open(&fil, name, FA_OPEN_ALWAYS | FA_READ) != FR_OK) {
+    /*if (f_open(&fil, name, FA_READ) != FR_OK) {
         return -1;
-    }
+    }*/
 
-	if (f_open(&fileR, name, FA_OPEN_ALWAYS | FA_READ) != FR_OK) {
+	/*if (f_open(&fileR, name, FA_READ) != FR_OK) {
         return -1;
-    }
+    }*/
 	
     if (strstr(name, "MP3")) ismp3 = 1;
     else ismp3 = 0;
@@ -116,9 +127,7 @@ int play(char * name)
     }
 	
 	if(ismp3==0)
-	{
-		I2SWavePlay();
-	}
+		WavePlayerStart(name);
 	
     TIM_Cmd(TIM1, ENABLE);
     TIM_Cmd(TIM2, ENABLE);
@@ -137,7 +146,7 @@ void stop()
     TIM_Cmd(TIM1, DISABLE);
     TIM_Cmd(TIM2, DISABLE);
 	//EVAL_AUDIO_Stop(CODEC_PDWN_SW);
-	Audio_MAL_Stop();
+	//Audio_MAL_Stop();
     //DAC_Cmd(DAC_Channel_1, DISABLE);
     //DAC_Cmd(DAC_Channel_2, DISABLE);
 
@@ -157,7 +166,7 @@ void player_init(void)
 	
 	/* Initialize I2S interface */  
 	EVAL_AUDIO_SetAudioInterface(AUDIO_INTERFACE_I2S);
-	EVAL_AUDIO_Init(OUTPUT_DEVICE_AUTO, 50, I2S_AudioFreq_48k );  
+	EVAL_AUDIO_Init(OUTPUT_DEVICE_AUTO, 100, I2S_AudioFreq_44k );  
 
     PWM_GPIO_Configuration();
     PWM_TIM2_Configuration();
@@ -165,8 +174,9 @@ void player_init(void)
 
     buf = pvPortMalloc(sizeof(uint16_t)*BUF_LENGTH);
     buf2 = pvPortMalloc(sizeof(uint16_t)*BUF_LENGTH);
-	pbuf1 = pvPortMalloc(sizeof(uint16_t)*BUF_LENGTH);
-	pbuf2 = pvPortMalloc(sizeof(uint16_t)*BUF_LENGTH);
+	buffer1 = pvPortMalloc(sizeof(uint16_t)*BUF_LENGTH);
+	buffer2 = pvPortMalloc(sizeof(uint16_t)*BUF_LENGTH);
+	//sampleBuffer = pvPortMalloc(sizeof(uint16_t)*(((48*4) * 300) / 2));
 }
 
 void  PWM_RCC_Configuration(void)
@@ -199,7 +209,7 @@ void TIM1_UP_TIM10_IRQHandler(void)
 		//v1
 		//pbuf1[0]=buf[cur_point*2];
 		//pbuf1[1]=buf[cur_point*2+1];
-		//Audio_MAL_Play((uint32_t)pbuf1, 2*sizeof(uint16_t));
+		//Audio_MAL_Play((uint32_t)pbuf1, 2);
 		
 		//v2
 		//pbuf1=&buf[cur_point*2];
@@ -232,7 +242,7 @@ void TIM1_UP_TIM10_IRQHandler(void)
 		//v1
 		//pbuf2[0]=buf2[cur_point*2];
 		//pbuf2[1]=buf2[cur_point*2+1];
-		//Audio_MAL_Play((uint32_t)pbuf2, 2*sizeof(uint16_t));
+		//Audio_MAL_Play((uint32_t)pbuf2, 2);
 		
 		//v2
 		//pbuf2=&buf2[cur_point*2];
@@ -449,7 +459,8 @@ void PWM_GPIO_Configuration(void)
 
 void EVAL_AUDIO_TransferComplete_CallBack(uint32_t pBuffer, uint32_t Size)
 {
-  EVAL_AUDIO_Stop(CODEC_PDWN_HW);
+  //EVAL_AUDIO_Stop(CODEC_PDWN_SW);
+  Audio_MAL_Stop();
 }
 
 uint16_t EVAL_AUDIO_GetSampleCallBack(void)

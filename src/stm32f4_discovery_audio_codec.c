@@ -126,6 +126,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4_discovery_audio_codec.h"
+#include "gui.h"
 
 /** @addtogroup Utilities
   * @{
@@ -356,6 +357,7 @@ uint32_t EVAL_AUDIO_Play(uint16_t* pBuffer, uint32_t Size)
 {
   /* Set the total number of data to be played (count in half-word) */
   AudioTotalSize = Size;
+  int datacount=Size/2;
 
   /* Call the audio Codec Play function */
   Codec_Play();
@@ -368,6 +370,13 @@ uint32_t EVAL_AUDIO_Play(uint16_t* pBuffer, uint32_t Size)
   
   /* Update the current audio pointer position */
   CurrentPos = pBuffer + DMA_MAX(AudioTotalSize);
+  
+  //SPI_I2S_ClearFlag(CODEC_I2S, SPI_I2S_FLAG_TXE);
+  /*for(int i=0;i<datacount;i++)
+  {
+	while (SPI_I2S_GetFlagStatus(CODEC_I2S, SPI_FLAG_TXE) == RESET);
+	SPI_I2S_SendData(CODEC_I2S, pBuffer[i]);
+  }*/
   
   return 0;
 }
@@ -1179,7 +1188,7 @@ static void Codec_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStructure;
   
   /* Enable Reset GPIO Clock */
-  RCC_AHB1PeriphClockCmd(AUDIO_RESET_GPIO_CLK,ENABLE);
+  //RCC_AHB1PeriphClockCmd(AUDIO_RESET_GPIO_CLK,ENABLE);
   
   /* Audio reset pin configuration -------------------------------------------------*/
   //GPIO_InitStructure.GPIO_Pin = AUDIO_RESET_PIN; 
@@ -1357,7 +1366,7 @@ static void Audio_MAL_Init(void)
     DMA_DeInit(AUDIO_MAL_DMA_STREAM);
     /* Set the parameters to be configured */
     DMA_InitStructure.DMA_Channel = AUDIO_MAL_DMA_CHANNEL;  
-    DMA_InitStructure.DMA_PeripheralBaseAddr = AUDIO_MAL_DMA_DREG;
+    DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)(SPI3_BASE + 0x0C);
     DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)0;      /* This field will be configured in play function */
     DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;
     DMA_InitStructure.DMA_BufferSize = (uint32_t)0xFFFE;      /* This field will be configured in play function */
@@ -1522,6 +1531,7 @@ void Audio_MAL_Play(uint32_t Addr, uint32_t Size)
   if (CurrAudioInterface == AUDIO_INTERFACE_I2S)
   {
     /* Configure the buffer address and size */
+	//DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)(SPI2_BASE + 0x0C);
     DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)Addr;
     DMA_InitStructure.DMA_BufferSize = (uint32_t)Size/2;
     

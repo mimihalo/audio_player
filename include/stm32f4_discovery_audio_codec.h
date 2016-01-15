@@ -96,13 +96,13 @@
 /* Uncomment defines below to select standard for audio communication between 
   Codec and I2S peripheral */
 #define I2S_STANDARD_PHILLIPS
-/* #define I2S_STANDARD_MSB */
+//#define I2S_STANDARD_MSB
 /* #define I2S_STANDARD_LSB */
 
 /* Uncomment the defines below to select if the Master clock mode should be 
   enabled or not */
 #define CODEC_MCLK_ENABLED
-/* #deine CODEC_MCLK_DISABLED */
+//#define CODEC_MCLK_DISABLED
 
 /* Uncomment this line to enable verifying data sent to codec after each write 
   operation */
@@ -168,10 +168,10 @@
 
  /* DAC DMA Stream definitions */
  #define AUDIO_DAC_DMA_CLOCK            RCC_AHB1Periph_DMA1
- #define AUDIO_DAC_DMA_STREAM           DMA1_Stream0
+ #define AUDIO_DAC_DMA_STREAM           DMA1_Stream5
  #define AUDIO_DAC_DMA_DREG             DAC_DHR12L1_ADDRESS
  #define AUDIO_DAC_DMA_CHANNEL          DMA_Channel_0
- #define AUDIO_DAC_DMA_IRQ              DMA1_Stream0_IRQn
+ #define AUDIO_DAC_DMA_IRQ              DMA1_Stream5_IRQn
  #define AUDIO_DAC_DMA_FLAG_TC          DMA_FLAG_TCIF0
  #define AUDIO_DAC_DMA_FLAG_HT          DMA_FLAG_HTIF0
  #define AUDIO_DAC_DMA_FLAG_FE          DMA_FLAG_FEIF0
