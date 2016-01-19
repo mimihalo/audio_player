@@ -165,8 +165,8 @@ void player_init(void)
     hMP3Decoder = MP3InitDecoder();
 	
 	/* Initialize I2S interface */  
-	EVAL_AUDIO_SetAudioInterface(AUDIO_INTERFACE_I2S);
-	EVAL_AUDIO_Init(OUTPUT_DEVICE_AUTO, 100, I2S_AudioFreq_44k );  
+	//EVAL_AUDIO_SetAudioInterface(AUDIO_INTERFACE_I2S);
+	//EVAL_AUDIO_Init(OUTPUT_DEVICE_AUTO, 100, I2S_AudioFreq_44k );  
 
     PWM_GPIO_Configuration();
     PWM_TIM2_Configuration();
@@ -457,11 +457,7 @@ void PWM_GPIO_Configuration(void)
     GPIO_PinAFConfig(GPIOB, GPIO_PinSource0, GPIO_AF_TIM1);
 }
 
-void EVAL_AUDIO_TransferComplete_CallBack(uint32_t pBuffer, uint32_t Size)
-{
-  //EVAL_AUDIO_Stop(CODEC_PDWN_SW);
-  Audio_MAL_Stop();
-}
+
 
 uint16_t EVAL_AUDIO_GetSampleCallBack(void)
 {

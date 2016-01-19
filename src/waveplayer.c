@@ -62,6 +62,7 @@ uint16_t AUDIO_SAMPLE[];
 /* Private variables ---------------------------------------------------------*/
  static uint32_t wavelen = 0;
  static __IO uint32_t SpeechDataOffset = 0x00;
+ static uint8_t needEVAL=0;
  __IO ErrorCode WaveFileStatus = Unvalid_RIFF_ID;
  UINT BytesRead;
  WAVE_FormatTypeDef WAVE_Format;
@@ -110,7 +111,8 @@ void WavePlayBack(uint32_t AudioFreq)
   /* Start playing wave */
   
   display_normal_line(1, "Play buf1");
-  Audio_MAL_Play((uint32_t)buffer1, BUF_LENGTH);
+  //Audio_MAL_Play((uint32_t)buffer1, BUF_LENGTH);
+  EVAL_AUDIO_Play(buffer1, BytesRead); 
   buffer_switch = 1;
  
   while(WaveDataLength > 0)
@@ -118,13 +120,14 @@ void WavePlayBack(uint32_t AudioFreq)
     /* Test on the command: Playing */
     if (1)
     { 
+		needEVAL=0;
       if(buffer_switch == 0)
       {
         /* Play data from buffer1 */
         //Audio_MAL_Play((uint32_t)buffer1, BUF_LENGTH);
 		display_normal_line(2, "Play buf2 -");
 		EVAL_AUDIO_Play(buffer1, BytesRead);
-		WaveDataLength-=BytesRead;
+		//WaveDataLength-=BytesRead;
         /* Store data in buffer2 */
         f_read (&fileR, buffer2, BUF_LENGTH, &BytesRead);
         buffer_switch = 1;
@@ -135,13 +138,14 @@ void WavePlayBack(uint32_t AudioFreq)
         //Audio_MAL_Play((uint32_t)BUF_LENGTH, BUF_LENGTH);
 		display_normal_line(3, "Play buf1 -");
 		EVAL_AUDIO_Play(buffer2, BytesRead);
-		WaveDataLength-=BytesRead;
+		//WaveDataLength-=BytesRead;
         /* Store data in buffer1 */
         f_read (&fileR, buffer1, BUF_LENGTH, &BytesRead);
         buffer_switch = 0;
       } 
     }
   }
+  display_normal_line(5, "Stop");
   WavePlayerStop();
 #endif 
 
@@ -224,7 +228,7 @@ and their implementation should be done in the user code if they are needed.
 Below some examples of callback implementations.
 --------------------------------------------------------*/
 
-#if 0
+#if 1
 /**
 * @brief  Calculates the remaining file size and new position of the pointer.
 * @param  None
@@ -233,8 +237,9 @@ Below some examples of callback implementations.
 void EVAL_AUDIO_TransferComplete_CallBack(uint32_t pBuffer, uint32_t Size)
 {
 	//XferCplt = 1;
-	//if (WaveDataLength) WaveDataLength -= _MAX_SS;
-	//if (WaveDataLength < _MAX_SS) WaveDataLength = 0;
+	needEVAL=1;
+	if (WaveDataLength) WaveDataLength -= BytesRead;
+	if (WaveDataLength < BUF_LENGTH) WaveDataLength = 0;
 }
 #endif
 

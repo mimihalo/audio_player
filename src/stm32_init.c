@@ -20,6 +20,7 @@ void RCC_Configuration(void)
       RCC_PLLCmd(ENABLE);
       while(RCC_GetFlagStatus(RCC_FLAG_PLLRDY) == RESET);
       RCC_SYSCLKConfig(RCC_SYSCLKSource_PLLCLK);
+	  RCC_I2SCLKConfig(RCC_I2S2CLKSource_PLLI2S);
       while(RCC_GetSYSCLKSource() != 0x08);
       
     }

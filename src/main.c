@@ -20,7 +20,10 @@
 
 #include "gui.h"
 #include "pwm.h"
+#include "stm32f4xx_spi.h"
+#include "stm32f4_discovery_audio_codec.h"
 //static void setup_hardware();
+//extern FIL fileR;
 
 volatile xSemaphoreHandle serial_tx_wait_sem = NULL;
 /* Add for serial input */
@@ -37,18 +40,26 @@ int main()
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
 
     //gui_init();
-    player_init();
-	gui_init();
+    //player_init();
+	//gui_init();
 	
-    vSemaphoreCreateBinary(play_sem);
-    play_queue = xQueueCreate(1, sizeof(FILINFO));
-    while (f_mount(&FatFs, "/", 1) != FR_OK) {
-        LCD_DisplayStringLine(LCD_LINE_7,(uint8_t*)"mount error QAQ");
-    }
+    //vSemaphoreCreateBinary(play_sem);
+    //play_queue = xQueueCreate(1, sizeof(FILINFO));
+    while (f_mount(&FatFs, "/", 1) != FR_OK);
+	//{
+        //LCD_DisplayStringLine(LCD_LINE_7,(uint8_t*)"mount error QAQ");
+    //}
+	EVAL_AUDIO_Init(OUTPUT_DEVICE_AUTO, 100, I2S_AudioFreq_44k );
+	WavePlayerStart("/test.wav");
+	WavePlayerStart("test.wav");
+	WavePlayerStart("/TEST.wav");
+	WavePlayerStart("TEST.wav");
+	WavePlayerStart("/TEST.WAV");
+	WavePlayerStart("TEST.WAV");
 
-    xTaskCreate(gui_start,
+    /*xTaskCreate(gui_start,
                 (signed portCHAR *) "start",
-                128 /* stack size */, NULL, tskIDLE_PRIORITY + 2, NULL);
+                128 , NULL, tskIDLE_PRIORITY + 2, NULL);*/
 
     // xTaskCreate(gui_play,
     //             (signed portCHAR *) "play",

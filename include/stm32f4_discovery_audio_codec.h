@@ -63,7 +63,7 @@
                                          Transfer using DMA */
 
 /* For the DMA modes select the interrupt that will be used */
-#define AUDIO_MAL_DMA_IT_TC_EN        /* Uncomment this line to enable DMA Transfer Complete interrupt */
+//#define AUDIO_MAL_DMA_IT_TC_EN        /* Uncomment this line to enable DMA Transfer Complete interrupt */
 /* #define AUDIO_MAL_DMA_IT_HT_EN */  /* Uncomment this line to enable DMA Half Transfer Complete interrupt */
 /* #define AUDIO_MAL_DMA_IT_TE_EN */  /* Uncomment this line to enable DMA Transfer Error interrupt */
 
@@ -101,8 +101,8 @@
 
 /* Uncomment the defines below to select if the Master clock mode should be 
   enabled or not */
-#define CODEC_MCLK_ENABLED
-//#define CODEC_MCLK_DISABLED
+//#define CODEC_MCLK_ENABLED
+#define CODEC_MCLK_DISABLED
 
 /* Uncomment this line to enable verifying data sent to codec after each write 
   operation */
